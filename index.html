@@ -1,0 +1,253 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>DualSense Pulse — موسیقی در دستت</title>
+<style>
+:root{--bg:#0a0c11;--card:#141822;--line:#232a3a;--tx:#eef1f8;--mu:#8c95ab;--ac:#00e0c6;--ac2:#7a5cff;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:light){:root:not([data-theme="dark"]){--bg:#eef1f6;--card:#fff;--line:#d9dfeb;--tx:#12151d;--mu:#5d667b}}
+:root[data-theme="dark"]{--bg:#0a0c11;--card:#141822;--line:#232a3a;--tx:#eef1f8;--mu:#8c95ab}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.7 system-ui,"Vazirmatn",Tahoma,sans-serif;min-height:100%}
+main{max-width:720px;margin:0 auto;padding:18px 14px 40px}
+h1{font-size:26px;margin:6px 0 2px;background:linear-gradient(90deg,var(--ac),var(--ac2));-webkit-background-clip:text;background-clip:text;color:transparent}
+p.sub{color:var(--mu);margin:0 0 16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:14px;margin-bottom:12px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+button,select{font:inherit;color:var(--tx);background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:10px 14px;cursor:pointer}
+button.main{background:linear-gradient(90deg,var(--ac),var(--ac2));color:#041016;border:0;font-weight:800}
+button:disabled{opacity:.45}
+.dot{width:10px;height:10px;border-radius:50%;background:#e5484d;display:inline-block;margin-inline-end:6px}
+.dot.on{background:#30d158}
+canvas{width:100%;height:110px;display:block;border-radius:12px;background:#05070b}
+label{display:flex;align-items:center;gap:6px}
+input[type=range]{flex:1;min-width:120px;accent-color:var(--ac)}
+.meters{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.m{height:10px;border-radius:6px;background:var(--line);overflow:hidden}
+.m i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--ac),var(--ac2))}
+small{color:var(--mu)}
+#log{font-size:13px;color:var(--mu);min-height:20px}
+audio{width:100%;margin-top:8px}
+</style>
+</head>
+<body>
+<main>
+<h1>DualSense Pulse</h1>
+<p class="sub">یه آهنگ بده؛ دسته PS5 با ویبره، تریگر تطبیقی، نور و LED ها همراهش می‌رقصه.</p>
+
+<div class="card">
+  <div class="row"><span><i class="dot" id="dot"></i><b id="st">متصل نیست</b></span>
+  <button class="main" id="conn">اتصال دسته</button>
+  <button id="test" disabled>تست ویبره</button></div>
+  <div id="log">دسته رو با USB یا بلوتوث وصل کن و «اتصال دسته» رو بزن (Chrome / Edge).</div>
+</div>
+
+<div class="card">
+  <div class="row"><input type="file" id="file" accept="audio/*"></div>
+  <audio id="aud" controls></audio>
+  <canvas id="cv" width="640" height="110"></canvas>
+  <div class="meters" style="margin-top:10px">
+    <div><small>باس → موتور چپ / L2</small><div class="m"><i id="mb"></i></div></div>
+    <div><small>تیز → موتور راست / R2</small><div class="m"><i id="mt"></i></div></div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="row"><label>شدت <input type="range" id="gain" min="0" max="150" value="100"></label></div>
+  <div class="row" style="margin-top:8px">
+    <label><input type="checkbox" id="oRum" checked> ویبره</label>
+    <label><input type="checkbox" id="oLed" checked> نوار نور</label>
+    <label><input type="checkbox" id="oPl" checked> LED بازیکن (VU)</label>
+    <label><input type="checkbox" id="oMic" checked> LED میکروفون (ضرب)</label>
+  </div>
+  <div class="row" style="margin-top:8px"><label>تریگرها
+    <select id="trig"><option value="music">واکنش به موسیقی</option><option value="rigid">سفت (مقاومت)</option><option value="weapon">ماشه‌ی اسلحه</option><option value="off">خاموش</option></select></label></div>
+  <div class="row" style="margin-top:8px"><label>نقطه‌ی شروع <input type="range" id="tp" min="0" max="9" value="1"></label>
+  <label>قدرت <input type="range" id="ts" min="1" max="8" value="6"></label></div>
+  <small>در حالت موسیقی، نقطه‌ی شروع = از کجای مسیر ماشه افکت شروع شه.</small>
+</div>
+
+<div class="card">
+  <b>🔊 پخش موسیقی از خود ویبره (فقط USB)</b>
+  <p class="sub" style="margin:4px 0 8px">موسیقی استریو مستقیم به دو کویل لرزشی دسته (چپ و راست) می‌ره و از اسپیکر کامپیوتر پخش نمی‌شه. با بلوتوث ممکن نیست.</p>
+  <label style="margin-bottom:8px">بلندی <input type="range" id="hv" min="0" max="300" value="150"></label>
+  <button id="hapTest">تست کویل‌ها (چپ بعد راست)</button> <button class="main" id="hap">پخش موسیقی از خود ویبره</button>
+  <p class="sub" style="margin:10px 0 4px">فشار ماشه‌ها (Gamepad): <span id="gp">—</span></p>
+</div>
+<small>اگه دکمه‌ها جواب ندادن، همین صفحه رو در تب جدید مرورگر دسکتاپ (Chrome/Edge) باز کن؛ دسترسی HID توی پیش‌نمایش‌های قابِ‌دار ممکنه بسته باشه.</small>
+</main>
+
+<script>
+const $=s=>document.querySelector(s);
+let lastGp=0,hapGain=null,sL=0,sR=0,dev=null,outLen=62,busy=false,errShown=false,bt=false,seq=0,first=true,lastSend=0,lastHex='',testUntil=0,peak=.2,bavg=0,lastBeat=0,mic=0;
+let ctx,an,src,fd,hapOn=false,nodes=[];
+const aud=$('#aud'),cv=$('#cv'),g=cv.getContext('2d');
+const log=t=>$('#log').textContent=t;
+
+/* ───── CRC32 (برای بلوتوث) ───── */
+const T=new Uint32Array(256).map((_,i)=>{let c=i;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;return c>>>0});
+const crc=a=>{let c=~0;for(const b of a)c=T[(c^b)&255]^(c>>>8);return ~c>>>0};
+
+/* ───── افکت‌های تریگر تطبیقی ───── */
+const zones=(pos,per)=>{let z=0,s=0;for(let i=pos;i<10;i++){z|=1<<i;s=(s|(per(i)<<(3*i)))>>>0}return[z,s]};
+const T0=()=>{const a=new Uint8Array(11);a[0]=5;return a};
+function tFeed(pos,str){if(str<1)return T0();const a=new Uint8Array(11);a[0]=0x21;const[z,s]=zones(pos,()=>(str-1)&7);a.set([z&255,z>>8,s&255,(s>>>8)&255,(s>>>16)&255,s>>>24],1);return a}
+function tWeapon(st,en,str){const a=new Uint8Array(11);a[0]=0x25;const m=(1<<st)|(1<<en);a[1]=m&255;a[2]=m>>8;a[3]=str-1;return a}
+function tVib(pos,amp,hz){if(amp<1)return T0();const a=new Uint8Array(11);a[0]=0x26;const[z,s]=zones(pos,()=>(amp-1)&7);a.set([z&255,z>>8,s&255,(s>>>8)&255,(s>>>16)&255,s>>>24],1);a[9]=hz;return a}
+
+/* ───── ساخت و ارسال گزارش خروجی ───── */
+async function send(o){
+  const c=new Uint8Array(47);
+  c[0]=o.hap?(0x04|0x08):(0x01|0x02|0x04|0x08);   // در حالت هپتیک صوتی، اصلاً ویبره‌ی معمولی نفرست (صدا رو ساکت می‌کرد)
+  c[1]=0x01|0x04|0x10;                       // LED میکروفون + نوار نور + LED بازیکن
+  c[2]=o.r;c[3]=o.l;c[8]=o.mic;
+  c.set(o.rt,10);c.set(o.lt,21);
+  c[38]=(o.hap?0:0x04)|(first?0x02:0);                 // ویبره بهبود‌یافته + آزادسازی نوار نور
+  if(first)c[41]=2;
+  c[43]=o.pl;c[44]=o.rgb[0];c[45]=o.rgb[1];c[46]=o.rgb[2];
+  const hex=c.join();if(hex===lastHex)return;lastHex=hex;
+  const id=bt?0x31:2,n=outLen;
+  const b=new Uint8Array(n);
+  try{
+    if(!bt){b.set(c.subarray(0,Math.min(47,n)))}
+    else{
+      b[0]=(seq++&15)<<4;b[1]=0x10;b.set(c.subarray(0,Math.min(47,n-2)),2);
+      const full=new Uint8Array(n-4+2);full[0]=0xA2;full[1]=id;full.set(b.subarray(0,n-4),2);
+      const k=crc(full);b[n-4]=k&255;b[n-3]=(k>>>8)&255;b[n-2]=(k>>>16)&255;b[n-1]=k>>>24;
+    }
+    await dev.sendReport(id,b);first=false;
+  }catch(e){lastHex='';throw e}
+}
+const outSize=(d,id)=>{for(const col of d.collections)for(const r of(col.outputReports||[]))if(r.reportId===id){let bits=0;for(const it of(r.items||[]))bits+=it.reportSize*it.reportCount;return Math.ceil(bits/8)}return 0};
+
+/* ───── اتصال ───── */
+$('#conn').onclick=async()=>{
+  if(!navigator.hid)return log('گوشی: دسته رو با بلوتوث به گوشی وصل کن و یکی از دکمه‌هاش رو بزن؛ حالت ویبره خودش فعال می‌شه. (ویژگی‌های کامل فقط روی Chrome/Edge دسکتاپ)');
+  try{
+    const[d]=await navigator.hid.requestDevice({filters:[{vendorId:0x54c,productId:0xce6},{vendorId:0x54c,productId:0xdf2}]});
+    if(!d)return;
+    if(!d.opened)await d.open();
+    dev=d;bt=!d.collections.some(c=>(c.outputReports||[]).some(r=>r.reportId===2));first=true;lastHex='';busy=false;errShown=false;
+    outLen=outSize(d,bt?0x31:2)||(bt?77:62);
+    if(bt){try{await d.receiveFeatureReport(5)}catch(e){}}
+    $('#st').textContent=d.productName+(bt?' (بلوتوث)':' (USB)');$('#dot').classList.add('on');$('#test').disabled=false;
+    log('وصل شد ('+(bt?'BT':'USB')+'، طول گزارش '+outLen+'). آهنگ رو انتخاب کن یا «تست ویبره» رو بزن.');
+  }catch(e){log('اتصال انجام نشد: '+e.message)}
+};
+navigator.hid&&navigator.hid.addEventListener('disconnect',e=>{if(e.device===dev){dev=null;$('#st').textContent='قطع شد';$('#dot').classList.remove('on');$('#test').disabled=true}});
+$('#test').onclick=()=>{testUntil=Date.now()+1500};
+
+/* ───── صدا ───── */
+function initAudio(){
+  if(ctx)return;
+  ctx=new AudioContext();an=ctx.createAnalyser();an.fftSize=1024;an.smoothingTimeConstant=.55;fd=new Uint8Array(an.frequencyBinCount);
+  src=ctx.createMediaElementSource(aud);src.connect(an);wire();
+}
+function wire(){
+  nodes.forEach(n=>{try{n.disconnect()}catch(e){}});nodes=[];try{src.disconnect()}catch(e){}
+  src.connect(an);
+  if(!hapOn){src.connect(ctx.destination);return}
+  /* استریو → کانال ۳ (کویل چپ) و ۴ (کویل راست)؛ کانال‌های ۱ و ۲ (هدفون/اسپیکر) ساکت */
+  const hp=ctx.createBiquadFilter();hp.type='highpass';hp.frequency.value=25;
+  const pre=ctx.createGain();pre.channelCount=2;pre.channelCountMode='explicit';pre.channelInterpretation='speakers';
+  const lim=ctx.createDynamicsCompressor();lim.threshold.value=-12;lim.ratio.value=12;
+  const gn=ctx.createGain();gn.gain.value=$('#hv').value/100;
+  const sp=ctx.createChannelSplitter(2),mg=ctx.createChannelMerger(4);
+  src.connect(hp);hp.connect(pre);pre.connect(lim);lim.connect(gn);gn.connect(sp);
+  sp.connect(mg,0,2);sp.connect(mg,1,3);mg.connect(ctx.destination);
+  nodes=[hp,pre,lim,gn,sp,mg];hapGain=gn;
+}
+$('#hv').oninput=()=>{if(hapGain)hapGain.gain.value=$('#hv').value/100};
+$('#file').onchange=e=>{const f=e.target.files[0];if(!f)return;aud.src=URL.createObjectURL(f);initAudio();aud.play().catch(()=>{})};
+aud.onplay=()=>{initAudio();ctx.resume()};
+$('#hap').onclick=async()=>{
+  try{
+    initAudio();
+    if(hapOn){hapOn=false;await ctx.setSinkId('');ctx.destination.channelCount=2;wire();$('#hap').textContent='پخش موسیقی از خود ویبره';return log('برگشت به خروجی معمولی.')}
+    let d;
+    if(navigator.mediaDevices.selectAudioOutput)d=await navigator.mediaDevices.selectAudioOutput();
+    else{
+      (await navigator.mediaDevices.getUserMedia({audio:true})).getTracks().forEach(t=>t.stop());
+      d=(await navigator.mediaDevices.enumerateDevices()).find(x=>x.kind==='audiooutput'&&/wireless controller|dualsense/i.test(x.label));
+      if(!d)throw new Error('خروجی صدای DualSense پیدا نشد');
+    }
+    await ctx.setSinkId(d.deviceId);
+    const mx=ctx.destination.maxChannelCount;
+    if(mx<4){await ctx.setSinkId('');return log('این خروجی فقط '+mx+' کانال داره. ویندوز: Sound ← Wireless Controller ← Properties ← Advanced و فرمت ۴ کانال رو انتخاب کن؛ دسته باید با USB وصل باشه.')}
+    ctx.destination.channelCount=4;ctx.destination.channelInterpretation='discrete';
+    hapOn=true;wire();$('#hap').textContent='برگشت به خروجی معمولی';
+    log('خروجی: '+(d.label||'؟')+' · '+mx+' کانال · '+ctx.state+'. «تست کویل‌ها» رو بزن؛ باید اول چپ و بعد راست دسته رو حس کنی. بعد آهنگ رو Play کن.');
+  }catch(e){log('هپتیک صوتی: '+e.message)}
+};
+
+$('#hapTest').onclick=()=>{
+  if(!hapOn||!ctx)return log('اول «پخش موسیقی از خود ویبره» رو بزن و خروجی دسته رو انتخاب کن.');
+  ctx.resume();const mg=ctx.createChannelMerger(4);mg.connect(ctx.destination);const t0=ctx.currentTime;
+  [2,3].forEach((ch,i)=>{const o=ctx.createOscillator(),g=ctx.createGain(),t=t0+i*.8;
+    o.frequency.value=i?170:90;g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.9,t+.05);g.gain.linearRampToValueAtTime(0,t+.65);
+    o.connect(g);g.connect(mg,0,ch);o.start(t);o.stop(t+.7)});
+  log('تست: اول کویل چپ، بعد راست. اگه هیچ‌کدوم رو حس نکردی مسیر کانال ۳ و ۴ روی این سیستم کار نمی‌کنه.');
+};
+
+/* ───── رنگ ───── */
+function hsv(h,s,v){const f=n=>{const k=(n+h*6)%6;return v-v*s*Math.max(0,Math.min(k,4-k,1))};return[f(5),f(3),f(1)].map(x=>Math.round(x*255))}
+const avg=(a,i,j)=>{let s=0;for(let k=i;k<j;k++)s+=a[k];return s/(j-i)/255};
+
+/* ───── حلقه‌ی اصلی ───── */
+function frame(){
+  requestAnimationFrame(frame);
+  let b=0,m=0,t=0,cen=.5;
+  const playing=ctx&&!aud.paused&&!aud.ended;
+  if(playing){
+    an.getByteFrequencyData(fd);
+    b=avg(fd,1,6);m=avg(fd,6,40);t=avg(fd,40,200);
+    let w=0,s=0;for(let i=1;i<200;i++){w+=fd[i];s+=fd[i]*i}cen=w?Math.min(1,s/w/120):.5;
+  }else if(Date.now()<testUntil){
+    const x=1-(testUntil-Date.now())/1500;b=Math.abs(Math.sin(x*12))*(1-x*.4);m=Math.abs(Math.sin(x*25))*.7;t=Math.abs(Math.sin(x*40))*.6;cen=x;
+  }
+  peak=Math.max(peak*.998,b,m,t,.15);
+  b=Math.min(1,b/peak);m=Math.min(1,m/peak);t=Math.min(1,t/peak);
+  const G=$('#gain').value/100;
+  const lv=Math.min(1,(b*.5+m*.3+t*.2)*G);
+  const now=performance.now();
+  bavg=bavg*.95+b*.05;
+  if(b>bavg*1.4+.08&&now-lastBeat>180){lastBeat=now;mic^=1}
+  // رسم
+  $('#mb').style.width=b*100+'%';$('#mt').style.width=t*100+'%';
+  g.clearRect(0,0,640,110);
+  if(fd&&playing)for(let i=0;i<64;i++){const v=fd[i*3+1]/255,h=v*104;g.fillStyle=`hsl(${170+i*2.2},90%,${35+v*30}%)`;g.fillRect(i*10,110-h,8,h)}
+  // ماشه‌ها (Gamepad API)
+  const gl=navigator.getGamepads?[...navigator.getGamepads()].filter(Boolean):[];
+  const gp=gl.find(x=>/054c|DualSense|Wireless Controller/i.test(x.id))||gl[0];
+  if(gp&&gp.buttons[6])$('#gp').textContent='L2 '+gp.buttons[6].value.toFixed(2)+' · R2 '+gp.buttons[7].value.toFixed(2);
+  /* حالت گوشی / بدون WebHID: فقط ویبره با Gamepad API */
+  if(!dev&&gp){
+    if(!$('#dot').classList.contains('on')){$('#dot').classList.add('on');$('#st').textContent='دسته (حالت ویبره)';$('#test').disabled=false}
+    if(gp.vibrationActuator&&now-lastGp>60){lastGp=now;const R=$('#oRum').checked;
+      gp.vibrationActuator.playEffect('dual-rumble',{startDelay:0,duration:90,strongMagnitude:R?Math.min(1,b*G):0,weakMagnitude:R?Math.min(1,(m*.5+t)*G*.8):0}).catch(()=>{})}
+    return;
+  }
+  if(!dev||busy||now-lastSend<30)return;lastSend=now;
+  const mode=$('#trig').value;
+  let lt,rt;
+  const P=+$('#tp').value,Sx=+$('#ts').value;
+  sL+=(b*G-sL)*.45;sR+=(t*G-sR)*.45;
+  if(mode==='music'){lt=tVib(P,Math.min(8,Math.round(sL*8)),35);rt=tVib(P,Math.min(8,Math.round(sR*8)),90)}
+  else if(mode==='rigid'){lt=rt=tFeed(P,Sx)}
+  else if(mode==='weapon'){const w=Math.max(2,P);lt=rt=tWeapon(w,Math.min(8,w+3),Sx)}
+  else lt=rt=T0();
+  const rum=$('#oRum').checked&&!hapOn;
+  const rm=v=>v<.04?0:Math.round(45+Math.min(1,v)*210);   // موتورها زیر ~۴۵ اصلاً نمی‌چرخن
+  const rgb=$('#oLed').checked?hsv(.62-cen*.62,.9,.12+lv*.88):[0,0,0];
+  const lvl=Math.round(lv*5);
+  busy=true;
+  send({hap:hapOn,l:rum?rm(b*G):0,r:rum?rm((m*.5+t)*G*.8):0,
+    lt,rt,rgb,pl:$('#oPl').checked?[0,4,10,14,27,31][lvl]:0,mic:$('#oMic').checked?mic:0}).catch(e=>{if(!errShown){errShown=true;log('خطا در ارسال ('+e.name+'): '+e.message+' — اگه Steam/DS4Windows/PS Remote Play بازه ببندش و دسته رو دوباره وصل کن.')}}).finally(()=>{busy=false});
+}
+frame();
+window.addEventListener('pagehide',()=>{if(dev)send({l:0,r:0,lt:T0(),rt:T0(),rgb:[0,0,0],pl:0,mic:0})});
+</script>
+</body>
+</html>
